@@ -144,6 +144,102 @@ WHERE deptno NOT IN (SELECT deptno FROM new_dept);
 SELECT d.deptno FROM dept d
 WHERE NOT EXISTS ( SELECT NULL FROM emp e WHERE d.deptno = e.deptno);
 
+-- Retrieving rows from one table that do not correspond to rows in another.
+SELECT * FROM dept  
+WHERE dept.deptno NOT IN (
+    SELECT emp.deptno FROM emp 
+    INNER JOIN dept
+    ON emp.deptno = dept.deptno);
+
+SELECT d.* 
+FROM dept d LEFT JOIN emp e
+ON d.deptno = e.deptno
+WHERE e.deptno IS NULL;
+
+SELECT e.ename, e.deptno AS emp_deptno, d.*
+FROM dept d 
+LEFT JOIN emp e
+ON (d.deptno = e.deptno);
+
+SELECT e.*, d.*
+FROM dept d 
+LEFT JOIN emp e
+ON (d.deptno = e.deptno);
+
+-- Adding joins to a query without interfering with other joins
+SELECT comb.ename, comb.loc, eb.received FROM emp_bonus eb
+RIGHT JOIN
+(SELECT * 
+FROM emp e, dept d
+WHERE e.deptno = d.deptno) comb
+ON eb.empno = comb.empno;
+
+SELECT e.ename, d.loc, eb.received
+FROM emp e, dept d, emp_bonus eb
+WHERE e.deptno = d.deptno
+AND e.empno = eb.empno;
+
+SELECT e.ename, d.loc, 
+(SELECT eb.received FROM emp_bonus eb
+WHERE eb.empno = e.empno) AS received 
+FROM emp e, dept d
+WHERE e.deptno = d.deptno
+ORDER BY 2;
+
+-- Determining whether two tables have the same data.
+CREATE VIEW V
+AS
+SELECT * FROM emp WHERE deptno != 10
+UNION ALL
+SELECT * FROM emp WHERE ename = 'WARD';
+
+SELECT emp.* 
+FROM emp, v
+WHERE emp.* = v.*;
+
+(
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno, COUNT(*) AS cnt
+FROM v
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno
+EXCEPT
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno, COUNT(*) AS cnt
+FROM emp
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno
+)
+UNION ALL
+(
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno, COUNT(*) AS cnt
+FROM emp
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno
+EXCEPT
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno, COUNT(*) AS cnt
+FROM v
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno
+)
+
+SELECT * FROM (
+SELECT e.empno, e.ename, e.job, e.mgr, e.hiredate, e.sal, e.comm, e.deptno, COUNT(*) AS cnt
+FROM emp e
+GROUP BY e.empno, e.ename, e.job, e.mgr, e.hiredate, e.sal, e.comm, e.deptno
+)
+
+
+
+
+
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
+FROM emp
+EXCEPT
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
+FROM v
+
+
+
+
+
+
+
+
 
 
 

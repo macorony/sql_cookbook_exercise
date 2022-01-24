@@ -224,14 +224,173 @@ GROUP BY e.empno, e.ename, e.job, e.mgr, e.hiredate, e.sal, e.comm, e.deptno
 )
 
 
-
-
-
-SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
-FROM emp
-EXCEPT
-SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
+SELECT * FROM (
+SELECT e.empno, e.ename, e.job, e.mgr, e.hiredate, e.sal, e.comm, e.deptno, COUNT(*) AS cnt
+FROM emp e
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno) e
+WHERE NOT EXISTS (
+SELECT NULL FROM (
+SELECT v.empno, v.ename, v.job, v.mgr, v.hiredate, v.sal, v.comm, v.deptno, COUNT(*) AS cnt
 FROM v
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno) v
+WHERE v.empno = e.empno
+AND v.ename = e.ename
+AND v.job = e.job
+AND v.mgr = e.mgr
+AND v.hiredate = e.hiredate
+AND v.sal = e.sal
+AND v.deptno = e.deptno
+AND v.cnt = e.cnt
+AND COALESCE(v.comm, 0) = COALESCE(e.comm, 0)
+)
+UNION ALL
+SELECT * FROM (
+SELECT v.empno, v.ename, v.job, v.mgr, v.hiredate, v.sal, v.comm, v.deptno, COUNT(*) AS cnt
+FROM v
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno
+) v
+WHERE NOT EXISTS(
+SELECT NULL FROM (
+SELECT e.empno, e.ename, e.job, e.mgr, e.hiredate, e.sal, e.comm, e.deptno, COUNT(*) AS cnt
+FROM emp e
+GROUP BY empno, ename, job, mgr, hiredate, sal, comm, deptno) e 
+WHERE v.empno = e.empno
+AND v.ename = e.ename
+AND v.job = e.job
+AND v.mgr = e.mgr
+AND v.hiredate = e.hiredate
+AND v.sal = e.sal
+AND v.deptno = e.deptno
+AND v.cnt = e.cnt
+AND COALESCE(v.comm, 0) = COALESCE(e.comm, 0)
+);
+
+-- Performing joins when using aggregates
+SELECT z.deptno, SUM(DISTINCT sal), SUM(bonus)
+FROM
+(
+SELECT t.empno, t.ename, t.deptno, t.sal, CASE
+WHEN t.type = 1 THEN sal * 0.1
+WHEN t.type = 2 THEN sal * 0.2
+WHEN t.type = 3 THEN sal * 0.3
+END bonus
+FROM
+(SELECT e.*, eb.received, eb.type 
+FROM emp e 
+LEFT JOIN emp_bonus eb
+ON e.empno = eb.empno) t
+) z
+GROUP BY z.deptno;
+
+-- Alternative solution
+SELECT d.deptno, d.total_sal, 
+SUM(e.sal * CASE WHEN eb.type = 1 THEN .1
+                 WHEN eb.type = 2 THEN .2
+                 ELSE .3 END) AS total_bonus
+FROM emp e, emp_bonus eb, 
+(SELECT deptno, SUM(sal) AS total_sal 
+FROM emp 
+WHERE deptno = 10
+GROUP BY deptno) d
+WHERE e.deptno = d.deptno
+AND e.empno = eb.empno
+GROUP BY d.deptno, d.total_sal;
+
+-- Performing outer joins when using aggregates
+
+SELECT e.deptno, SUM(e.sal), SUM(b.bonus)
+FROM emp e
+LEFT JOIN
+(SELECT eb.empno, SUM(e.sal * CASE 
+WHEN eb.type = 1 THEN 0.1
+ELSE 0.2 END) AS bonus
+FROM emp_bonus eb 
+LEFT JOIN emp e
+ON eb.empno = e.empno
+GROUP BY eb.empno) b
+ON e.empno = b.empno
+WHERE e.deptno = 10
+GROUP BY e.deptno;
+
+-- Returning missing data from multiple tables
+
+INSERT INTO emp 
+SELECT 1111, 'YODA', 'JEDI', NULL, hiredate, sal, comm, NULL
+FROM emp 
+WHERE ename = 'KING';
+
+SELECT d.deptno, d.dname, e.ename
+FROM dept d FULL OUTER JOIN emp e
+ON d.deptno = e.deptno;
+
+-- Using NULLs in operations and comparisons
+
+SELECT * FROM emp 
+WHERE COALESCE(comm, 0) > (SELECT comm FROM emp WHERE ename = 'WARD');
+
+
+-- Copy rows from one table into another
+
+INSERT INTO dept_east (deptno, dname, loc) 
+SELECT deptno, dname, loc
+FROM dept
+WHERE loc IN ('NEW YORK', 'BOSTON'); 
+
+-- Copying a table definition
+
+CREATE TABLE dept_2
+AS
+SELECT *
+FROM dept
+WHERE 1 = 0;
+
+-- Blocking inserts to certain columns
+CREATE VIEW new_emps AS 
+SELECT empno, ename, job
+FROM emp
+
+-- Modifying records in a table
+UPDATE emp
+SET sal = sal * 1.10
+WHERE deptno = 20;
+
+-- Updating when corresponding rows exist
+UPDATE emp
+SET sal = sal * 1.2
+WHERE empno in (SELECT empno FROM emp_bonus)
+
+UPDATE emp 
+SET sal = sal * 1.2
+WHERE EXISTS 
+(
+SELECT NULL FROM emp_bonus 
+WHERE emp.empno = emp_bonus.empno
+)
+
+-- Updating with values from another table
+
+UPDATE emp 
+SET sal = (SELECT sal FROM new_sal), 
+comm = 0.5 * (SELECT sal FROM new_sal)
+WHERE emp.deptno = (SELECT deptno FROM new_sal);
+
+UPDATE emp
+SET sal = ns.sal, comm = ns.sal/2
+FROM new_sal ns
+WHERE ns.deptno = emp.deptno;
+
+UPDATE emp e 
+SET (sal, comm) = (SELECT ns.sal , ns.sal/2 
+                       FROM new_sal ns 
+                       WHERE ns.deptno = e.deptno)
+WHERE EXISTS (SELECT NULL FROM emp e, new_sal ns
+              WHERE e.deptno = ns.deptno)
+
+SELECT * FROM emp e
+WHERE EXISTS (SELECT NULL FROM new_sal ns, emp
+              WHERE e.deptno = ns.deptno)
+
+
 
 
 

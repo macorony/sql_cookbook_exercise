@@ -391,7 +391,10 @@ WHERE EXISTS (SELECT NULL FROM new_sal ns, emp
               WHERE e.deptno = ns.deptno)
 
 -- Merging records
-UPDATE     
+
+
+-- Deleting records from a table
+
 
 
 

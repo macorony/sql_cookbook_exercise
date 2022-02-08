@@ -395,6 +395,9 @@ WHERE EXISTS (SELECT NULL FROM new_sal ns, emp
 
 -- Deleting records from a table
 
+-- Deleting duplicate records
+DELETE FROM dupes
+WHERE id NOT IN (SELECT MIN(id) FROM dupes GROUP BY name);
 
 
 

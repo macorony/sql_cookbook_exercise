@@ -183,3 +183,12 @@ INSERT INTO dupes VALUES (5, 'SEA SHELLS');
 INSERT INTO dupes VALUES (6, 'SEA SHELLS');
 INSERT INTO dupes VALUES (7, 'SEA SHELLS');
 
+CREATE TABLE dept_accidents (deptno integer, accident_name varchar(20));
+INSERT INTO dept_accidents VALUES (10, 'BROKEN FOOT');
+INSERT INTO dept_accidents VALUES (10, 'FLESH WOUND');
+INSERT INTO dept_accidents VALUES (20, 'FIRE');
+INSERT INTO dept_accidents VALUES (20, 'FIRE');
+INSERT INTO dept_accidents VALUES (20, 'FLOOD');
+INSERT INTO dept_accidents VALUES (30, 'BRUISED GLUTE');
+
+
